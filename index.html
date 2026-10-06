@@ -514,7 +514,7 @@ function plural(n,one,many){return n===1?one:(many||one+"s")}
 var LADDER=[
   {n:1,name:"Support",what:"A kind, useful comment on a parent's post. No ask, no question about them, no ABA unless the post is about ABA.",gate:"Any post that fits. Most comments live here."},
   {n:2,name:"Question",what:"A real question asked with curiosity. It invites the parent to reply, which is the whole point.",gate:"Posts where she genuinely wants to know more."},
-  {n:3,name:"DM offer",what:"An offer to send something useful, only inside a reply thread after the parent replied to her.",gate:"Never in a first comment. No cap: offer whenever it helps, and watch how many turn into DMs."},
+  {n:3,name:"DM offer",what:"An offer to send something useful, only inside a reply thread after the parent replied to her.",gate:"Never in a first comment. Only after the parent replies, one per thread, and only where the group rules allow it. No cap on the total."},
   {n:4,name:"Private message",what:"The parent messages her. Treetop is named here, then the tracked link is sent.",gate:"Only when the parent starts the conversation."},
   {n:5,name:"Own post",what:"A question or resource posted under her own name. Still no Treetop.",gate:"Once she is a familiar name in that group."}];
 function stepName(r){var L=LADDER[+r-1];return L?"Step "+L.n+", "+L.name:"Step "+r}
@@ -532,7 +532,8 @@ function derive(D){
     e._posted=isYes(ps);
     e._declined=/declin|remov|reject/.test(ps);
     e._pending=/pend|await|approv/.test(ps);
-    e._draft=!e._posted&&!e._declined&&!e._pending&&!!e.Response;
+    e._closed=/skip|closed/.test(ps);
+    e._draft=!e._posted&&!e._declined&&!e._pending&&!e._closed&&!!e.Response;
   });
   D.log.forEach(function(e){e._own=String(e.Rung||"").trim()==="5"});
   var allPosted=D.log.filter(function(e){return e._posted});
@@ -548,6 +549,7 @@ function derive(D){
   M.drafts=D.log.filter(function(e){return e._draft}).length;
   M.declined=D.log.filter(function(e){return e._declined}).length;
   M.awaiting=D.log.filter(function(e){return e._pending}).length;
+  M.closed=D.log.filter(function(e){return e._closed}).length;
   M.last7=posted.filter(function(e){return e._date&&e._date>=weekAgo&&e._date<=t}).length;
   M.todayCount=posted.filter(function(e){return e._date&&dayKey(e._date)===dayKey(t)}).length;
   M.replies=posted.filter(function(e){return isYes(e["They replied?"])}).length;
@@ -582,7 +584,7 @@ function scorecard(D){
   rows.push({m:"Groups joined in Arizona",a:M.joinedAZ,t:sheetTarget(D,/arizona/i,"8 to 12 this week"),s:M.joinedAZ>=8?st("good","On track"):st("warn","Behind pace")});
   rows.push({m:"Comments posted, last 7 days",a:M.last7,t:WEEK_GOAL+" a week (about "+DAY_PACE+" a day)",s:M.last7>=WEEK_GOAL?st("good","On track"):M.last7>=WEEK_GOAL*0.7?st("warn","Behind pace"):st("bad","Well behind")});
   rows.push({m:"Reply rate on your comments",a:pct(M.replies,M.posted)+"%",sub:M.replies+" of "+M.posted+(M.unchecked?", "+M.unchecked+" not checked yet":""),t:sheetTarget(D,/reply rate/i,"25% (1 in 4)"),s:M.replyRate>=.25?st("good","On track"):M.unchecked>M.checked?st("none","Too early to call"):st("warn","Below target")});
-  rows.push({m:"DM offers (ladder step 3)",a:M.offers,sub:M.dms+" turned into a DM so far ("+pct(M.dms,M.offers)+"%)",t:"No cap. Offer whenever it helps",s:M.offers?st("good","Offering"):st("none","None yet")});
+  rows.push({m:"DM offers (ladder step 3)",a:M.offers,sub:M.dms+" turned into a DM so far ("+pct(M.dms,M.offers)+"%)",t:"No cap. One offer per thread, only after the parent replies, and only where the group rules allow it",s:st("none","No cap")});
   rows.push({m:"DMs started by parents",a:M.dms,t:sheetTarget(D,/^dms/i,"2 a week by week 3"),s:M.weekNo<3?(M.dms?st("good","Ahead of schedule"):st("none","Not due until week 3")):(M.dms>=2?st("good","On track"):st("warn","Behind pace"))});
   rows.push({m:"Tracked links sent",a:M.linksSent,t:"",s:st("none","No target")});
   rows.push({m:"Her own posts (ladder step 5)",a:M.ownPosts,sub:"Not counted as comments",t:"Once she is a familiar name in a group",s:M.ownPosts?st("good","Started"):st("none","Not yet")});
@@ -712,7 +714,7 @@ function renderLadder(){
   $("#c-rungs").innerHTML='<div class="chart-h"><h3>The comment ladder</h3><span class="hint">'+M.posted+' comments and '+M.ownPosts+' own posts</span></div>'+
     '<p class="hint">Every parent conversation climbs the same five steps. A step only happens after the parent does something first, so the numbers are meant to shrink as you go up. That is the guardrail that keeps this from reading as sales.</p>'+
     '<ol class="ladder">'+LADDER.map(function(L){var c=counts[L.n];return '<li class="rung" tabindex="0" data-tip="'+esc(L.gate)+'"><span class="rn c'+(L.n-1)+'">'+L.n+'</span><div class="rt"><b>'+esc(L.name)+'</b><span>'+esc(L.what)+'</span></div><span class="rb"><i style="width:'+(c/max*100)+'%"></i></span><span class="rv num">'+c+'</span></li>'}).join("")+"</ol>"+
-    '<p class="hint"><b>Offers:</b> there is no cap on DM offers. '+M.offers+" offers so far, "+M.dms+" turned into a DM ("+pct(M.dms,M.offers)+"%). Step 3 counts offers made as comments plus offers made inside reply threads.</p>";
+    '<p class="hint"><b>Offers:</b> no cap on the total, but one per thread, only after the parent replies, and only where the group rules allow it. '+M.offers+" offers so far, "+M.dms+" turned into a DM ("+pct(M.dms,M.offers)+"%). Step 3 counts offers made as comments plus offers made inside reply threads.</p>";
 }
 function renderMix(){
   var T={};DATA.log.forEach(function(e){if(e._posted&&!e._own){var k=(e.Type||"untagged").toLowerCase();T[k]=(T[k]||0)+1}});
@@ -726,7 +728,7 @@ function seg(el,opts,cur,attr){$(el).innerHTML=opts.map(function(o){return '<but
 function fillSelect(el,opts,cur){var s=$(el);s.innerHTML=opts.map(function(o){return '<option value="'+esc(o[0])+'">'+esc(o[1])+"</option>"}).join("");s.value=cur;if(s.value!==cur){s.value=opts[0][0];return opts[0][0]}return cur}
 function renderLogControls(){
   var M=DATA.M;
-  seg("#logSeg",[["all","All "+DATA.log.length],["posted","Comments "+M.posted],["own","Own posts "+M.ownPosts],["draft","Drafts "+M.drafts],["replied","Replied "+M.replies],["unchecked","Unchecked "+M.unchecked],["awaiting","Awaiting approval "+M.awaiting],["declined","Declined "+M.declined]],UI.logStatus,"ls");
+  seg("#logSeg",[["all","All "+DATA.log.length],["posted","Comments "+M.posted],["own","Own posts "+M.ownPosts],["draft","Drafts "+M.drafts],["replied","Replied "+M.replies],["unchecked","Unchecked "+M.unchecked],["awaiting","Awaiting approval "+M.awaiting],["declined","Declined "+M.declined],["closed","Skipped or closed "+M.closed]],UI.logStatus,"ls");
   var types={},groups={};DATA.log.forEach(function(e){if(e.Type)types[e.Type.toLowerCase()]=1;groups[e._group]=1});
   UI.logType=fillSelect("#logType",[["all","Every topic"]].concat(Object.keys(types).sort().map(function(t){return [t,t.charAt(0).toUpperCase()+t.slice(1)]})),UI.logType);
   UI.logGroup=fillSelect("#logGroup",[["all","Every group"]].concat(Object.keys(groups).sort().map(function(g){return [g,g]})),UI.logGroup);
@@ -740,6 +742,7 @@ function renderLog(){
     if(UI.logStatus==="draft"&&!e._draft)return false;
     if(UI.logStatus==="awaiting"&&!e._pending)return false;
     if(UI.logStatus==="declined"&&!e._declined)return false;
+    if(UI.logStatus==="closed"&&!e._closed)return false;
     if(UI.logStatus==="replied"&&!(e._posted&&isYes(e["They replied?"])))return false;
     if(UI.logStatus==="unchecked"&&!(e._posted&&!String(e["They replied?"]||"").trim()))return false;
     if(UI.logType!=="all"&&(e.Type||"").toLowerCase()!==UI.logType)return false;
@@ -750,7 +753,7 @@ function renderLog(){
   $("#logList").innerHTML=rows.length?rows.map(function(e){
     var gUrl=safeUrl(e["Post link"])||safeUrl(e["Group (URL)"]),long=(e.Post||"").length>260,open=UI.open[e._i];
     var flags="";
-    flags+=e._posted?pill({tone:"good",label:"Posted"}):e._declined?pill({tone:"bad",label:/remov/i.test(e["Posted?"])?"Post removed":"Declined by admin"}):e._pending?pill({tone:"warn",label:"Awaiting admin approval"}):e._draft?pill({tone:"warn",label:"Draft, not posted"}):pill({tone:"none",label:"No reply drafted"});
+    flags+=e._posted?pill({tone:"good",label:"Posted"}):e._declined?pill({tone:"bad",label:/remov/i.test(e["Posted?"])?"Post removed":"Declined by admin"}):e._pending?pill({tone:"warn",label:"Awaiting admin approval"}):e._closed?pill({tone:"none",label:/skip/i.test(e["Posted?"])?"Skipped":"Comments closed"}):e._draft?pill({tone:"warn",label:"Draft, not posted"}):pill({tone:"none",label:"No reply drafted"});
     if(e._posted)flags+=isYes(e["They replied?"])?pill({tone:"good",label:"They replied"}):isNo(e["They replied?"])?pill({tone:"none",label:"No reply"}):pill({tone:"none",label:"Reply not checked"});
     if(truthy(e["Offered DM?"]))flags+=pill({tone:"good",label:"DM offered"});
     if(truthy(e["DM'd"]))flags+=pill({tone:"good",label:"DM started"});
