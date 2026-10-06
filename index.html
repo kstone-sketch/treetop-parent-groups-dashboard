@@ -341,6 +341,11 @@ th button:hover{text-decoration:underline}
       <p class="hint">Treetop gets named in the DM before any link goes out.</p>
     </div>
     <div class="sec">
+      <div class="sec-h"><h2>Links You Have Sent</h2><p class="hint">Every Log row with something in the Link sent column. Clicks are not tracked yet; see the note under the table.</p></div>
+      <div class="scroll"><table class="lk" id="sentTable"></table></div>
+      <p class="hint" id="sentNote"></p>
+    </div>
+    <div class="sec">
       <div class="sec-h"><h2>Links in the Sheet</h2></div>
       <div class="scroll"><table class="lk" id="lkTable"></table></div>
     </div>
@@ -826,6 +831,13 @@ function renderLinks(){
   fillSelect("#lbDest",ready.map(function(l){return [l["Destination URL (paste here)"],l.Page]}).concat([["custom","Another Treetop page"]]),prevD||(ready[0]?ready[0]["Destination URL (paste here)"]:"custom"));
   var u=DATA.utm||{};$("#utmHint").textContent="Every link gets ?"+utmQuery()+" so Salesforce credits the lead to you. The group a parent came from goes in the Log, not in the link.";
   updateBuilt();
+  var sent=DATA.log.filter(function(e){return truthy(e["Link sent"])}).sort(function(a,b){return (b._date||0)-(a._date||0)});
+  function pageName(u){u=safeUrl(u);if(!u)return "";var n=normUrl(u);var hit=DATA.links.filter(function(l){return normUrl(l["Destination URL (paste here)"])===n})[0];return hit?hit.Page:n.replace(/^www\.thetreetop\.com\/?/,"")||"thetreetop.com"}
+  $("#sentTable").innerHTML="<thead><tr><th>Date</th><th>Group</th><th>State</th><th>Page</th><th>Parent replied?</th><th>DM?</th></tr></thead><tbody>"+(sent.length?sent.map(function(e){
+    var pn=pageName(e["Link sent"]),gUrl=safeUrl(e["Post link"])||safeUrl(e["Group (URL)"]);
+    return '<tr><td class="num">'+esc(e._date?fmtDay(e._date):e.Date)+"</td><td>"+(gUrl?'<a href="'+esc(gUrl)+'" target="_blank" rel="noopener">'+esc(e._group)+"</a>":esc(e._group))+"</td><td>"+esc(e._state)+"</td><td>"+(pn?esc(pn):'<span class="hint">Not recorded (cell says "'+esc(String(e["Link sent"]).slice(0,20))+'")</span>')+"</td><td>"+(isYes(e["They replied?"])?pill({tone:"good",label:"Yes"}):isNo(e["They replied?"])?pill({tone:"none",label:"No"}):pill({tone:"none",label:"Not checked"}))+"</td><td>"+(truthy(e["DM'd"])?pill({tone:"good",label:"In DM"}):pill({tone:"none",label:"No DM"}))+"</td></tr>"}).join(""):'<tr><td colspan="6" class="empty">No links sent yet.</td></tr>')+"</tbody>";
+  var noPage=sent.filter(function(e){return !pageName(e["Link sent"])}).length;
+  $("#sentNote").textContent=sent.length+" "+plural(sent.length,"link")+" sent so far."+(noPage?" "+noPage+" "+plural(noPage,"row says","rows say")+" only \"yes\" in the Link sent column; paste the actual link there to see which page it was.":"");
   var list=DATA.links.filter(function(l){return l.Page&&safeUrl(l["Destination URL (paste here)"])});
   $("#lkTable").innerHTML="<thead><tr><th>Page</th><th>Tracked link</th><th>Ready?</th><th>Notes</th></tr></thead><tbody>"+list.map(function(l,i){
     var t=safeUrl(l["Tracked link (copy this)"]),ok=isYes(l["Ready to send?"]);
