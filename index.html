@@ -388,7 +388,7 @@ var SERVER="Google Drive", TOOL="download_file_content", INPUT={fileId:FILE_ID,e
 var EXPORT_URL="https://docs.google.com/spreadsheets/d/"+FILE_ID+"/export?format=xlsx";
 var SNAPSHOT_LABEL="Oct 6, 2026";
 var POLL_MS=5*60*1000;
-var WEEK_GOAL=250, DAY_PACE=Math.ceil(WEEK_GOAL/7);
+var WEEK_GOAL=250, DAY_PACE=Math.ceil(WEEK_GOAL/7), LINKS_GOAL=100;
 
 var $=function(s,r){return (r||document).querySelector(s)};
 function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
@@ -591,7 +591,7 @@ function scorecard(D){
   rows.push({m:"Reply rate on your comments",a:pct(M.replies,M.posted)+"%",sub:M.replies+" of "+M.posted+(M.unchecked?", "+M.unchecked+" not checked yet":""),t:sheetTarget(D,/reply rate/i,"25% (1 in 4)"),s:M.replyRate>=.25?st("good","On track"):M.unchecked>M.checked?st("none","Too early to call"):st("warn","Below target")});
   rows.push({m:"DM offers (ladder step 3)",a:M.offers,sub:M.dms+" turned into a DM so far ("+pct(M.dms,M.offers)+"%)",t:"No cap. One offer per thread, only after the parent replies, and only where the group rules allow it",s:st("none","No cap")});
   rows.push({m:"DMs started by parents",a:M.dms,t:sheetTarget(D,/^dms/i,"2 a week by week 3"),s:M.weekNo<3?(M.dms?st("good","Ahead of schedule"):st("none","Not due until week 3")):(M.dms>=2?st("good","On track"):st("warn","Behind pace"))});
-  rows.push({m:"Tracked links sent",a:M.linksSent,t:"",s:st("none","No target")});
+  rows.push({m:"Tracked links sent",a:M.linksSent,sub:pct(M.linksSent,LINKS_GOAL)+"% of the way there",t:LINKS_GOAL+" links, no deadline",s:M.linksSent>=LINKS_GOAL?st("good","Goal reached"):M.linksSent>0?st("warn",M.linksSent+" of "+LINKS_GOAL):st("none","None yet")});
   rows.push({m:"Her own posts (ladder step 5)",a:M.ownPosts,sub:"Not counted as comments",t:"Once she is a familiar name in a group",s:M.ownPosts?st("good","Started"):st("none","Not yet")});
   rows.push({m:"Warned or removed by an admin",a:M.warned,t:sheetTarget(D,/warned or removed/i,"0"),s:M.warned===0?st("good","All clear"):st("bad","Review the group rules")});
   rows.push({m:"Groups joined, all states",a:M.joined,sub:M.pending+" pending, "+M.toJoin+" still to join",t:"",s:st("none","No target")});
@@ -626,7 +626,7 @@ function renderGoal(){
     ["Comments posted",M.posted,"plus "+M.ownPosts+" own "+plural(M.ownPosts,"post")],
     ["Parent replies",M.replies,pct(M.replies,M.posted)+"% reply rate"],
     ["DMs started",M.dms,"by parents"],
-    ["Links sent",M.linksSent,"tracked"],
+    ["Links sent",M.linksSent,"goal "+LINKS_GOAL],
     ["Leads",M.leads,"goal "+M.leadGoal]];
   var cheer=M.todayCount>DAY_PACE*1.3?M.todayCount+" comments posted today. That is ahead of the "+WEEK_GOAL+" a week pace.":M.todayCount>=DAY_PACE?M.todayCount+" comments posted today. Right on the "+WEEK_GOAL+" a week pace.":M.todayCount>0?M.todayCount+" posted today, "+(DAY_PACE-M.todayCount)+" more to hit today's share of "+WEEK_GOAL+" a week.":"No comments yet today. About "+DAY_PACE+" a day gets you to "+WEEK_GOAL+" a week.";
   var grow="";
