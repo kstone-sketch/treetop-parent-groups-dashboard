@@ -679,20 +679,23 @@ function renderDays(){
   renderWeeks();
 }
 function renderWeeks(){
-  var M=DATA.M,t=today(),start=new Date(M.start);
-  var counts={};DATA.log.forEach(function(e){if(e._posted&&!e._own&&e._date){var w=Math.floor((e._date-start)/864e5/7);if(w>=0)counts[w]=(counts[w]||0)+1}});
-  var nWeeks=Math.floor((t-start)/864e5/7)+1,weeks=[],max=0;
+  var M=DATA.M,t=today();
+  // Weeks run Monday to Friday. A weekend comment counts toward the Monday that follows it.
+  function weekMonday(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()),dow=x.getDay();if(dow===0)x.setDate(x.getDate()+1);else if(dow===6)x.setDate(x.getDate()+2);else x.setDate(x.getDate()-(dow-1));return x}
+  var start=weekMonday(M.start),counts={};
+  DATA.log.forEach(function(e){if(e._posted&&!e._own&&e._date){var w=Math.round((weekMonday(e._date)-start)/864e5/7);if(w>=0)counts[w]=(counts[w]||0)+1}});
+  var curMon=weekMonday(t),nWeeks=Math.round((curMon-start)/864e5/7)+1,weeks=[],max=0;
   for(var i=0;i<nWeeks;i++){var d=new Date(start);d.setDate(start.getDate()+i*7);var c=counts[i]||0;weeks.push({i:i,d:d,c:c,now:i===nWeeks-1});if(c>max)max=c}
   var top=Math.max(WEEK_GOAL+50,Math.ceil((max+25)/50)*50),ticks=[0,top/2,top];
-  var cur=weeks[weeks.length-1],daysIn=Math.floor((t-cur.d)/864e5)+1;
+  var cur=weeks[weeks.length-1],daysIn=Math.min(5,Math.max(1,Math.floor((t-cur.d)/864e5)+1));
   var html='<div class="chart-h"><h3>Comments posted per week</h3><div class="legend"><span><i style="background:var(--seq-1)"></i>Full weeks</span><span><i style="background:var(--seq-2)"></i>This week so far</span><span><i class="dash"></i>Goal, '+WEEK_GOAL+' a week</span></div></div>';
   html+='<div class="days weeks"><div class="yax">'+ticks.map(function(v){return '<span class="num" style="bottom:'+(v/top*100)+'%">'+v+"</span>"}).join("")+'</div><div class="plot">'+
     '<div class="grid" style="bottom:50%"></div><div class="grid" style="bottom:100%"></div>'+
     '<div class="goal-line" style="bottom:'+(WEEK_GOAL/top*100)+'%"><em>'+WEEK_GOAL+'</em></div>'+
-    '<div class="bars">'+weeks.map(function(w){var end=new Date(w.d);end.setDate(w.d.getDate()+6);var tip="Week "+(w.i+1)+", "+fmtDay(w.d)+" to "+fmtDay(end)+": "+w.c+" "+plural(w.c,"comment")+(w.now?" so far ("+daysIn+" of 7 days)":"")+(w.c>=WEEK_GOAL?". Goal met":"");return '<div class="bar'+(w.now?" now":"")+'" tabindex="0" data-tip="'+esc(tip)+'"><span class="lab num">'+w.c+'</span><b style="height:'+(w.c/top*100)+'%"></b></div>'}).join("")+"</div></div></div>";
+    '<div class="bars">'+weeks.map(function(w){var end=new Date(w.d);end.setDate(w.d.getDate()+4);var tip="Week "+(w.i+1)+", Mon "+fmtDay(w.d)+" to Fri "+fmtDay(end)+": "+w.c+" "+plural(w.c,"comment")+(w.now?" so far ("+daysIn+" of 5 days)":"")+(w.c>=WEEK_GOAL?". Goal met":"");return '<div class="bar'+(w.now?" now":"")+'" tabindex="0" data-tip="'+esc(tip)+'"><span class="lab num">'+w.c+'</span><b style="height:'+(w.c/top*100)+'%"></b></div>'}).join("")+"</div></div></div>";
   html+='<div class="xax"><span></span><div>'+weeks.map(function(w){return "<span>Wk "+(w.i+1)+" · "+esc(fmtDay(w.d))+"</span>"}).join("")+"</div></div>";
   var full=weeks.filter(function(w){return !w.now}),met=full.filter(function(w){return w.c>=WEEK_GOAL}).length;
-  html+='<p class="hint">Weeks run Sunday to Saturday from the Sept 14 start. '+(full.length?met+" of "+full.length+" full "+plural(full.length,"week")+" hit "+WEEK_GOAL+". ":"")+"This week: "+cur.c+" after "+daysIn+" "+plural(daysIn,"day")+", on pace for about "+Math.round(cur.c/daysIn*7)+".</p>";
+  html+='<p class="hint">Weeks run Monday to Friday. '+(full.length?met+" of "+full.length+" full "+plural(full.length,"week")+" hit "+WEEK_GOAL+". ":"")+"This week: "+cur.c+" after "+daysIn+" "+plural(daysIn,"day")+", on pace for about "+Math.round(cur.c/daysIn*5)+".</p>";
   $("#c-weeks").innerHTML=html;
 }
 function renderStates(){
