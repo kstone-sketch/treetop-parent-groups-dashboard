@@ -397,7 +397,7 @@ var SERVER="Google Drive", TOOL="download_file_content", INPUT={fileId:FILE_ID,e
 var EXPORT_URL="https://docs.google.com/spreadsheets/d/"+FILE_ID+"/export?format=xlsx";
 var SNAPSHOT_LABEL="Oct 7, 2026";
 var POLL_MS=5*60*1000;
-var WEEK_GOAL=250, DAY_PACE=Math.ceil(WEEK_GOAL/7), LINKS_GOAL=100;
+var WEEK_GOAL=200, DAY_PACE=Math.ceil(WEEK_GOAL/7), LINKS_GOAL=100;
 
 var $=function(s,r){return (r||document).querySelector(s)};
 function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
